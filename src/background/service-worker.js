@@ -82,6 +82,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true; // 非同期応答
   }
+
+  if (msg && msg.type === "getShortcuts") {
+    // 実際に割り当てられているショートカットを返す（ユーザーが再設定した内容を反映）
+    (async () => {
+      const shortcuts = {};
+      try {
+        const commands = await chrome.commands.getAll();
+        for (const c of commands) {
+          // c.shortcut は現在の割り当て（未割り当ては ""）
+          shortcuts[c.name] = c.shortcut || "";
+        }
+      } catch (_) {
+        /* 取得失敗時は空で返す（content 側で既定表記にフォールバック） */
+      }
+      sendResponse({ shortcuts });
+    })();
+    return true; // 非同期応答
+  }
+
   return false;
 });
 

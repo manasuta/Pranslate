@@ -364,12 +364,27 @@
   popupEl.className = "pr-popup pr-hidden";
   shadow.appendChild(popupEl);
 
+  /** モードIDごとのショートカット表記 <span>（実際の割り当てに同期して更新する） */
+  const shortcutSpans = {};
+
   MODES.forEach((mode) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "pr-mode-btn";
     btn.dataset.mode = mode.id;
-    btn.innerHTML = `<span>${mode.label}</span><span class="pr-shortcut">${shortcutLabel(mode.key)}</span>`;
+
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = mode.label;
+
+    const scSpan = document.createElement("span");
+    scSpan.className = "pr-shortcut";
+    // 初期値は既定表記。読み込み後に実際の割り当てへ同期する。
+    scSpan.textContent = shortcutLabel(mode.key);
+    shortcutSpans[mode.id] = scSpan;
+
+    btn.appendChild(labelSpan);
+    btn.appendChild(scSpan);
+
     btn.addEventListener("mousedown", (e) => {
       // mousedown で selection が消えるのを防ぐ
       e.preventDefault();
@@ -381,6 +396,33 @@
     });
     popupEl.appendChild(btn);
   });
+
+  /** 実際のショートカット割り当て（command名 -> 表記文字列。"" は未割り当て） */
+  let shortcuts = {};
+
+  /** ポップアップのショートカット表記を実際の割り当てに合わせて更新する */
+  function updateShortcutLabels() {
+    MODES.forEach((mode) => {
+      const span = shortcutSpans[mode.id];
+      if (!span) return;
+      const actual = shortcuts[mode.id];
+      if (typeof actual === "string") {
+        span.textContent = actual; // 実際の割り当て
+        // 未割り当て（衝突などで空）のときは表記を隠す
+        span.classList.toggle("pr-hidden", actual === "");
+      }
+    });
+  }
+
+  /** service worker から実際のショートカット割り当てを取得して表示に反映する */
+  function refreshShortcuts() {
+    safeSendMessage({ type: "getShortcuts" }, (res) => {
+      if (res && res.shortcuts && typeof res.shortcuts === "object") {
+        shortcuts = res.shortcuts;
+        updateShortcutLabels();
+      }
+    });
+  }
 
   function hidePopup() {
     popupEl.classList.add("pr-hidden");
@@ -859,6 +901,14 @@
     if (response && typeof response.enabled === "boolean") {
       enabled = response.enabled;
     }
+  });
+
+  // 実際のショートカット割り当てを取得して表示に反映
+  refreshShortcuts();
+  // ユーザーが chrome://extensions/shortcuts で変更してページに戻ったら再取得する
+  window.addEventListener("focus", refreshShortcuts);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshShortcuts();
   });
 
   // 保存済みのカードサイズ（手動リサイズ）を読み込む
