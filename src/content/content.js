@@ -675,6 +675,8 @@
       } catch {
         /* noop */
       }
+      // 変更後のサイズを保存（次回以降・再読み込み後も維持）
+      persistUserSize();
     }
 
     resizeHandle.addEventListener("pointerup", endResize);
@@ -686,6 +688,7 @@
       e.stopPropagation();
       userSize = null;
       cardEl.style.height = "";
+      persistUserSize();
       if (lastSelectionInfo && lastSelectionInfo.rect) {
         positionCard(lastSelectionInfo.rect);
       }
@@ -857,6 +860,29 @@
       enabled = response.enabled;
     }
   });
+
+  // 保存済みのカードサイズ（手動リサイズ）を読み込む
+  const CARD_SIZE_KEY = "pranslate:cardSize";
+  try {
+    chrome.storage.local.get(CARD_SIZE_KEY, (res) => {
+      if (chrome.runtime.lastError) return;
+      const s = res && res[CARD_SIZE_KEY];
+      if (s && typeof s.w === "number" && typeof s.h === "number") {
+        userSize = { w: s.w, h: s.h };
+      }
+    });
+  } catch {
+    /* storage 不可の環境では自動サイズのまま */
+  }
+
+  /** 現在の手動サイズを永続化する（null なら自動サイズに戻す） */
+  function persistUserSize() {
+    try {
+      chrome.storage.local.set({ [CARD_SIZE_KEY]: userSize });
+    } catch {
+      /* noop */
+    }
+  }
 
   try {
     chrome.runtime.onMessage.addListener((message) => {
