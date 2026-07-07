@@ -1,0 +1,8 @@
+# OS
+.DS_Store
+
+# Claude Code local settings (user-specific)
+.claude/settings.local.json
+
+# Node (将来ビルドを足す場合)
+node_modules/

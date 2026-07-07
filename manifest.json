@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Pranslate",
+  "version": "0.1.0",
+  "description": "英語のプログラミング教材を、サイトを離れず選択箇所だけその場で解説（日本語訳/コード説明/用語説明）。Gemini API 利用。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/markdown.js", "src/content/content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "Pranslate: クリックでこのページのON/OFF",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "translate": {
+      "suggested_key": { "default": "Ctrl+Shift+H", "mac": "Command+Shift+H" },
+      "description": "日本語訳（選択テキスト）"
+    },
+    "code": {
+      "suggested_key": { "default": "Ctrl+Shift+J", "mac": "Command+Shift+J" },
+      "description": "コード説明（選択コード）"
+    },
+    "term": {
+      "suggested_key": { "default": "Ctrl+Shift+K", "mac": "Command+Shift+K" },
+      "description": "用語説明（選択した用語・概念）"
+    }
+  }
+}

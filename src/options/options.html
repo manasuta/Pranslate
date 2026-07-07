@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pranslate 設定</title>
+<link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <h1>Pranslate 設定</h1>
+      <p class="subtitle">英語のプログラミング教材を読むときのお供に。Gemini API を使って日本語訳・コード説明・用語説明を表示します。</p>
+    </header>
+
+    <section class="card">
+      <h2>Gemini API キー</h2>
+      <div class="field">
+        <label for="apiKey">API キー</label>
+        <div class="input-with-button">
+          <input type="password" id="apiKey" name="apiKey" autocomplete="off" placeholder="AIza..." />
+          <button type="button" id="toggleApiKey" class="secondary-btn">表示</button>
+        </div>
+        <p class="help-text">
+          API キーをお持ちでない場合は
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
+          から取得できます。
+        </p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>モデル</h2>
+      <div class="field">
+        <label for="model">使用するモデル</label>
+        <select id="model" name="model"></select>
+        <input type="text" id="customModel" name="customModel" class="pr-hidden" placeholder="任意のモデル ID（例: gemini-2.5-pro）" />
+        <p class="help-text">通常は既定のモデルで問題ありません。速度や品質の違いを試したい場合に変更してください。</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>動作設定</h2>
+      <div class="field field-row">
+        <label for="defaultEnabled">
+          <input type="checkbox" id="defaultEnabled" name="defaultEnabled" />
+          既定でオン
+        </label>
+        <p class="help-text">新しいページを開いたときに、選択ポップアップを自動的に有効にします。</p>
+      </div>
+
+      <div class="field">
+        <label for="dailyLimit">1日あたりの呼び出し上限</label>
+        <input type="number" id="dailyLimit" name="dailyLimit" min="1" step="1" placeholder="空欄で無制限" />
+        <p class="help-text">空欄にすると無制限になります。意図しない API 課金を防ぎたい場合に設定してください。</p>
+      </div>
+
+      <div class="field">
+        <p class="usage-text" id="usageText">本日の呼び出し: 0 回</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>キーボードショートカット</h2>
+      <p class="help-text">
+        既定のショートカットは
+        <code>⇧⌘H</code> / <code>⇧⌘J</code> / <code>⇧⌘K</code>（Windows では
+        <code>Ctrl+Shift+H/J/K</code>）です。変更したい場合は
+        <a href="chrome://extensions/shortcuts" target="_blank" rel="noopener noreferrer">chrome://extensions/shortcuts</a>
+        で設定できます。
+      </p>
+    </section>
+
+    <div class="save-row">
+      <button type="button" id="saveBtn" class="primary-btn">保存</button>
+      <span id="savedMsg" class="saved-msg pr-hidden">保存しました</span>
+      <span id="errorMsg" class="error-msg pr-hidden"></span>
+    </div>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

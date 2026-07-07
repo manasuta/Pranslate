@@ -1,0 +1,202 @@
+/* Pranslate オプションページ スタイル */
+
+:root {
+  color-scheme: light dark;
+  --pr-bg: #f7f8fa;
+  --pr-card-bg: #ffffff;
+  --pr-border: rgba(0, 0, 0, 0.08);
+  --pr-text: #1f2328;
+  --pr-muted: #6b7076;
+  --pr-accent: #1a5fd6;
+  --pr-accent-contrast: #ffffff;
+  --pr-input-bg: #ffffff;
+  --pr-success-bg: #e3f5e6;
+  --pr-success-text: #226a34;
+  --pr-error-text: #a5271f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pr-bg: #1c1e21;
+    --pr-card-bg: #26292d;
+    --pr-border: rgba(255, 255, 255, 0.1);
+    --pr-text: #e6e6e6;
+    --pr-muted: #9aa0a6;
+    --pr-accent: #7db0ff;
+    --pr-accent-contrast: #0b1220;
+    --pr-input-bg: #1c1e21;
+    --pr-success-bg: #1f3a2a;
+    --pr-success-text: #8fd6a0;
+    --pr-error-text: #ff8a80;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--pr-bg);
+  color: var(--pr-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+.page-header h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: var(--pr-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.card {
+  background: var(--pr-card-bg);
+  border: 1px solid var(--pr-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-input-bg);
+  color: var(--pr-text);
+  font-size: 13px;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+.input-with-button input {
+  flex: 1;
+}
+
+#customModel {
+  margin-top: 8px;
+}
+
+.pr-hidden {
+  display: none !important;
+}
+
+.help-text {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--pr-muted);
+  line-height: 1.6;
+}
+
+.help-text a {
+  color: var(--pr-accent);
+}
+
+.help-text code {
+  background: rgba(127, 127, 127, 0.18);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.usage-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pr-text);
+}
+
+.secondary-btn {
+  border: 1px solid var(--pr-border);
+  background: var(--pr-card-bg);
+  color: var(--pr-text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.secondary-btn:hover {
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.primary-btn {
+  border: none;
+  background: var(--pr-accent);
+  color: var(--pr-accent-contrast);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
+
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.saved-msg {
+  font-size: 13px;
+  color: var(--pr-success-text);
+  background: var(--pr-success-bg);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.error-msg {
+  font-size: 13px;
+  color: var(--pr-error-text);
+}
