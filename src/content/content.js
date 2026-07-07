@@ -179,10 +179,23 @@
     .pr-card-body {
       padding: 10px 12px;
       overflow-y: auto;
+      overflow-x: hidden;
       line-height: 1.6;
-      flex: 1;
+      flex: 1 1 auto;
+      /* Flex 子要素がコンテンツより小さく縮めるようにして overflow-y:auto を機能させる（本文スクロールの要） */
+      min-height: 0;
+      min-width: 0;
+      /* 日本語・長い語も確実に折り返す */
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .pr-card-body p { margin: 0 0 8px; }
+    .pr-card-body p, .pr-card-body li {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     .pr-card-body p:last-child { margin-bottom: 0; }
     .pr-card-body h1, .pr-card-body h2, .pr-card-body h3,
     .pr-card-body h4, .pr-card-body h5, .pr-card-body h6 {
@@ -386,6 +399,55 @@
     el.style.left = `${Math.round(left)}px`;
   }
 
+  /**
+   * 結果カードを選択範囲付近に配置する。
+   * 本文が長くなってもカードが必ずビューポート内に収まるよう、
+   * 上下の空きスペースの大きい側に出し、その空きに応じて max-height を設定して
+   * 本文を内部スクロールさせる（画面外に隠れて読めなくなるのを防ぐ）。
+   * @param {DOMRect|{top:number,bottom:number,left:number,right:number}} rect
+   */
+  function positionCard(rect) {
+    const gap = 10;
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const width = Math.min(360, vw - margin * 2);
+
+    const spaceBelow = vh - rect.bottom - gap - margin;
+    const spaceAbove = rect.top - gap - margin;
+    const minH = 140;
+
+    // 一旦リセット（前回の top/bottom が残らないように）
+    cardEl.style.top = "";
+    cardEl.style.bottom = "";
+    cardEl.style.width = `${Math.round(width)}px`;
+
+    // 下側優先。下が狭く上の方が広ければ上に出す。
+    const placeBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove;
+    const maxH = Math.floor(placeBelow ? spaceBelow : spaceAbove);
+
+    if (maxH < minH) {
+      // 上下どちらも狭い（選択範囲が画面をほぼ占有）→ 画面いっぱいに配置してスクロール
+      cardEl.style.top = `${margin}px`;
+      cardEl.style.bottom = `${margin}px`;
+      cardEl.style.maxHeight = `${vh - margin * 2}px`;
+    } else {
+      cardEl.style.maxHeight = `${maxH}px`;
+      if (placeBelow) {
+        cardEl.style.top = `${Math.round(rect.bottom + gap)}px`;
+      } else {
+        // 選択範囲の上に、下端を合わせて配置（上方向に伸び、内部でスクロール）
+        cardEl.style.bottom = `${Math.round(vh - rect.top + gap)}px`;
+      }
+    }
+
+    // 左位置（ビューポート内にクランプ）
+    let left = rect.left;
+    if (left + width > vw - margin) left = vw - margin - width;
+    if (left < margin) left = margin;
+    cardEl.style.left = `${Math.round(left)}px`;
+  }
+
   // ---------------------------------------------------------------------
   // 結果カード要素
   // ---------------------------------------------------------------------
@@ -473,6 +535,8 @@
       const rect = cardEl.getBoundingClientRect();
       startLeft = rect.left;
       startTop = rect.top;
+      // bottom アンカー配置を解除して top 基準のドラッグに切り替える
+      cardEl.style.bottom = "auto";
       cardEl.style.left = `${rect.left}px`;
       cardEl.style.top = `${rect.top}px`;
       try {
@@ -762,9 +826,9 @@
     setActiveFooterButton(mode);
     showLoading();
 
-    // カードをポップアップ同様、選択範囲の近くに表示する
+    // カードを選択範囲の近くに、必ず画面内に収まるよう表示する
     showCard();
-    positionNear(cardEl, info.rect, 10);
+    positionCard(info.rect);
 
     let requestId;
     try {
