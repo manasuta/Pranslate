@@ -42,6 +42,9 @@
   let activeRequestId = null;
   let answerBuffer = "";
 
+  /** ユーザーが手動でリサイズしたカードサイズ（未設定なら自動サイズ） */
+  let userSize = null; // { w, h }
+
   // ---------------------------------------------------------------------
   // プラットフォーム判定・ショートカット表示
   // ---------------------------------------------------------------------
@@ -286,6 +289,23 @@
       border-color: #7aa7ff;
     }
 
+    /* ---- リサイズグリップ（右下） ---- */
+    .pr-resize {
+      position: absolute;
+      right: 1px;
+      bottom: 1px;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      pointer-events: auto;
+      touch-action: none;
+      z-index: 2;
+      /* 斜線2本のグリップ表現 */
+      background:
+        linear-gradient(135deg, transparent 0 60%, #b3b7bd 60% 70%, transparent 70% 78%, #b3b7bd 78% 88%, transparent 88%);
+      border-bottom-right-radius: 10px;
+    }
+
     /* ---- ダークモード ---- */
     @media (prefers-color-scheme: dark) {
       .pr-popup, .pr-card {
@@ -325,6 +345,10 @@
         border-color: #4d7fc9;
       }
       .pr-card-badge { background: #1f3a2a; color: #8fd6a0; }
+      .pr-resize {
+        background:
+          linear-gradient(135deg, transparent 0 60%, #6b7078 60% 70%, transparent 70% 78%, #6b7078 78% 88%, transparent 88%);
+      }
     }
   `;
 
@@ -411,33 +435,49 @@
     const margin = 8;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const width = Math.min(360, vw - margin * 2);
+    const minH = 140;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi));
+
+    // 手動サイズがあれば幅はそれを優先（画面内にクランプ）
+    const width = userSize
+      ? clamp(userSize.w, 240, vw - margin * 2)
+      : Math.min(360, vw - margin * 2);
 
     const spaceBelow = vh - rect.bottom - gap - margin;
     const spaceAbove = rect.top - gap - margin;
-    const minH = 140;
-
-    // 一旦リセット（前回の top/bottom が残らないように）
-    cardEl.style.top = "";
-    cardEl.style.bottom = "";
-    cardEl.style.width = `${Math.round(width)}px`;
-
     // 下側優先。下が狭く上の方が広ければ上に出す。
     const placeBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove;
-    const maxH = Math.floor(placeBelow ? spaceBelow : spaceAbove);
 
-    if (maxH < minH) {
-      // 上下どちらも狭い（選択範囲が画面をほぼ占有）→ 画面いっぱいに配置してスクロール
-      cardEl.style.top = `${margin}px`;
-      cardEl.style.bottom = `${margin}px`;
+    // 一旦リセット（前回の top/bottom/height が残らないように）
+    cardEl.style.top = "";
+    cardEl.style.bottom = "";
+    cardEl.style.height = "";
+    cardEl.style.width = `${Math.round(width)}px`;
+
+    if (userSize) {
+      // 手動サイズ: 明示 height を使い、top 基準で必ず画面内に収める
+      const h = clamp(userSize.h, minH, vh - margin * 2);
+      cardEl.style.height = `${h}px`;
       cardEl.style.maxHeight = `${vh - margin * 2}px`;
+      let top = placeBelow ? rect.bottom + gap : rect.top - gap - h;
+      top = clamp(top, margin, vh - margin - h);
+      cardEl.style.top = `${Math.round(top)}px`;
     } else {
-      cardEl.style.maxHeight = `${maxH}px`;
-      if (placeBelow) {
-        cardEl.style.top = `${Math.round(rect.bottom + gap)}px`;
+      // 自動サイズ: 空きの大きい側に出し、その空きに応じて内部スクロール
+      const space = Math.floor(placeBelow ? spaceBelow : spaceAbove);
+      if (space < minH) {
+        // 上下どちらも狭い（選択範囲が画面をほぼ占有）→ 画面いっぱいに配置
+        cardEl.style.top = `${margin}px`;
+        cardEl.style.bottom = `${margin}px`;
+        cardEl.style.maxHeight = `${vh - margin * 2}px`;
       } else {
-        // 選択範囲の上に、下端を合わせて配置（上方向に伸び、内部でスクロール）
-        cardEl.style.bottom = `${Math.round(vh - rect.top + gap)}px`;
+        cardEl.style.maxHeight = `${space}px`;
+        if (placeBelow) {
+          cardEl.style.top = `${Math.round(rect.bottom + gap)}px`;
+        } else {
+          // 選択範囲の上に下端を合わせて配置（上方向に伸び、内部スクロール）
+          cardEl.style.bottom = `${Math.round(vh - rect.top + gap)}px`;
+        }
       }
     }
 
@@ -463,6 +503,7 @@
     </div>
     <div class="pr-card-body"></div>
     <div class="pr-card-footer"></div>
+    <div class="pr-resize" title="ドラッグでサイズ変更（ダブルクリックで既定に戻す）"></div>
   `;
   shadow.appendChild(cardEl);
 
@@ -473,6 +514,7 @@
   const cardHeaderEl = cardEl.querySelector(".pr-card-header");
   const copyBtn = cardEl.querySelector(".pr-copy-btn");
   const closeBtn = cardEl.querySelector(".pr-close-btn");
+  const resizeHandle = cardEl.querySelector(".pr-resize");
 
   MODES.forEach((mode) => {
     const btn = document.createElement("button");
@@ -573,6 +615,81 @@
 
     cardHeaderEl.addEventListener("pointerup", endDrag);
     cardHeaderEl.addEventListener("pointercancel", endDrag);
+  })();
+
+  // ---- カードのリサイズ（右下グリップ、ウィンドウのように伸縮） ----
+  (function enableResize() {
+    let resizing = false;
+    let startX = 0;
+    let startY = 0;
+    let startW = 0;
+    let startH = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    resizeHandle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resizing = true;
+      const rect = cardEl.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      startW = rect.width;
+      startH = rect.height;
+      startLeft = rect.left;
+      startTop = rect.top;
+      // top 基準に固定し、高さを明示制御できるようにする
+      cardEl.style.bottom = "auto";
+      cardEl.style.top = `${rect.top}px`;
+      cardEl.style.left = `${rect.left}px`;
+      cardEl.style.maxHeight = `${window.innerHeight - 16}px`;
+      cardEl.style.height = `${rect.height}px`;
+      cardEl.style.width = `${rect.width}px`;
+      try {
+        resizeHandle.setPointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
+    });
+
+    resizeHandle.addEventListener("pointermove", (e) => {
+      if (!resizing) return;
+      const margin = 8;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const maxW = window.innerWidth - startLeft - margin;
+      const maxH = window.innerHeight - startTop - margin;
+      const w = Math.max(240, Math.min(startW + dx, maxW));
+      const h = Math.max(120, Math.min(startH + dy, maxH));
+      cardEl.style.width = `${Math.round(w)}px`;
+      cardEl.style.height = `${Math.round(h)}px`;
+      // 手動サイズとして記憶（以降の表示・再実行でも維持）
+      userSize = { w: Math.round(w), h: Math.round(h) };
+    });
+
+    function endResize(e) {
+      if (!resizing) return;
+      resizing = false;
+      try {
+        resizeHandle.releasePointerCapture(e.pointerId);
+      } catch {
+        /* noop */
+      }
+    }
+
+    resizeHandle.addEventListener("pointerup", endResize);
+    resizeHandle.addEventListener("pointercancel", endResize);
+
+    // ダブルクリックで自動サイズに戻す
+    resizeHandle.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      userSize = null;
+      cardEl.style.height = "";
+      if (lastSelectionInfo && lastSelectionInfo.rect) {
+        positionCard(lastSelectionInfo.rect);
+      }
+    });
   })();
 
   // ---------------------------------------------------------------------
